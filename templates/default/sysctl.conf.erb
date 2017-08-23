@@ -1,0 +1,5 @@
+<% node['keepalived']['sysctl_options'].each do |key, value| %>
+<% if key %>
+<%= key %> = <%= value %>
+<% end %>
+<% end %>
