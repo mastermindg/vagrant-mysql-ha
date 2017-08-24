@@ -11,6 +11,9 @@ end
 # Make sure that GuestAdditions are where they need to be
 system "cp /Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso /tmp/" unless File.exist?('/tmp/VBoxGuestAdditions.iso')
 
+# Clean up old node data
+system "rm -rf nodes/*" unless Dir.glob('nodes/*.json').none?
+
 nodes = {
   primary: {
     hostname: 'mysql-primary',
