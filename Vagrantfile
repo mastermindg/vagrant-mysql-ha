@@ -1,17 +1,15 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-box_version = '1707.01'
+box_name = "mastermindg/centos7"
+box_version = '0.1'
 required_plugins = %w( vagrant-triggers vagrant-share vagrant-omnibus vagrant-hostmanager vagrant-berkshelf vagrant-vbguest)
 required_plugins.each do |plugin|
-    exec "vagrant plugin install #{plugin};vagrant #{ARGV.join(" ")}" unless Vagrant.has_plugin? plugin || ARGV[0] == 'plugin'
+    system "vagrant plugin install #{plugin};vagrant #{ARGV.join(" ")}" unless Vagrant.has_plugin? plugin || ARGV[0] == 'plugin'
 end
 
 # Make sure that GuestAdditions are where they need to be
-exec "cp /Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso /tmp/" unless File.exist?('/tmp/VBoxGuestAdditions.iso')
-
-# Make sure we've got the correct centos/7 version
-system("vagrant box add --box-version #{box_version} --provider virtualbox centos/7") unless system("vagrant box list | grep -q #{box_version}")
+system "cp /Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso /tmp/" unless File.exist?('/tmp/VBoxGuestAdditions.iso')
 
 nodes = {
   primary: {
@@ -33,19 +31,16 @@ nodes = {
 Vagrant.configure(2) do |config|
   netmask = '255.255.255.0'
 
-  config.vm.box = 'centos/7'
+  config.vm.box = "#{box_name}"
   config.vm.box_version = "=#{box_version}"
   config.vm.box_check_update = false
 
   # Enabling the Berkshelf plugin globally
   config.berkshelf.enabled = true
 
-  # Add IP addresses to /etc/hosts on first run
-  config.vm.provision 'shell', inline: 'echo -e "192.168.56.19\tmysql-primary" >> /etc/hosts', run: 'once'
-  config.vm.provision 'shell', inline: 'echo -e "192.168.56.20\tmysql-secondary" >> /etc/hosts', run: 'once'
-
-  # Enable Eth1 by default on each run
-  config.vm.provision 'shell', inline: 'ifup eth1', run: 'always'
+  nodes.each do |node, options|
+    config.vm.provision 'shell', inline: "echo -e \"#{options[:ipaddress]}\t#{options[:hostname]}\" >> /etc/hosts", run: 'once'
+  end
 
   nodes.each do |node, options|
     role = options[:role]
@@ -68,7 +63,7 @@ Vagrant.configure(2) do |config|
       end
       n_conf.vm.hostname = hostname
 
-      n_conf.vm.provision "chef_solo" do |chef|
+      n_conf.vm.provision "chef_zero" do |chef|
         chef.node_name = hostname
         chef.cookbooks_path = "./cookbooks"
         chef.nodes_path = "./nodes"
