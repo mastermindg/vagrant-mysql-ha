@@ -1,4 +1,4 @@
-name		 "mysql-ha"
+name		 				 "mysql-ha"
 maintainer       "Ken Jenney"
 maintainer_email "me@kenjenney.com"
 license          "All rights reserved"
