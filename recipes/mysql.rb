@@ -207,30 +207,18 @@ node['servers'].each do |hostname, ip|
   if node['cluster_role'] == "BACKUP"
     other_server = node['other_server']
     log "other server ip: #{other_server}"
-    bash 'get coordinates' do
+    bash 'set master status' do
       user 'root'
       cwd '/'
       code <<-EOH
+        root_password="#{mysql_root_password}"
         replicator_password="#{replicator_password}"
         other_server="#{other_server}"
-        mysql -h $other_server -P 3305 -u replicator -p$replicator_password -e "show master status" > status
+        status=$(mysql -h$other_server -P 3305 -u replicator -p$replicator_password -e "show master status")
+        file=$(echo $status | awk '{print $6}')
+        pos=$(echo $status | awk '{print $7}')
+        echo "STOP SLAVE;CHANGE MASTER TO MASTER_HOST='$other_server',MASTER_USER='replicator', MASTER_PASSWORD='$replicator_password', MASTER_LOG_FILE='$file', MASTER_PORT= 3305, MASTER_LOG_POS=  $pos;START SLAVE" | mysql -P 3305 -u root -p$root_password
       EOH
-    end
-
-    if File.exist?('/tmp/status')
-      coordinates = ::File.read('/status').chomp
-      log "coordinates: #{coordinates}"
-
-      bash 'get coordinates' do
-        user 'root'
-        cwd '/tmp'
-        code <<-EOH
-          coordinates="#{coordinates}"
-          echo $coordinates
-        EOH
-      end
-    else
-      log "File doesn't exist"
     end
   end
 end
